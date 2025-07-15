@@ -17,7 +17,7 @@ class CategorySeeder extends Seeder
             // Parent Category: Electronics
             [
                 'name' => 'Electronics',
-                'department_id' => 1,                git init
+                'department_id' => 1,
                 'parent_id' => null,
                 'active' => true,
                 'created_at' => now(),
