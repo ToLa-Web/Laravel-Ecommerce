@@ -108,7 +108,18 @@ class ProductResource extends Resource
                     ->required()
             ]);
     }
-
+    /**
+     * Define the table configuration for the Product resource in Filament.
+     *
+     * - Displays columns for product title, status, department, category, and creation date.
+     * - Allows sorting and searching by product title.
+     * - Shows status as a colored badge using values from ProductStatusEnum.
+     * - Displays related department and category names.
+     * - Formats the creation date as date and time.
+     * - Provides filters for status and department using select dropdowns.
+     * - Enables editing of individual products.
+     * - Supports bulk deletion of selected products.
+     */
     public static function table(Table $table): Table
     {
         return $table
