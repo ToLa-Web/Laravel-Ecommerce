@@ -2,10 +2,10 @@
 
 namespace App\Filament\Resources;
 
+use App\Enums\RolesEnum;
 use App\Filament\Resources\DepartmentResource\Pages;
 use App\Filament\Resources\DepartmentResource\RelationManagers;
 use App\Models\Department;
-use App\RolesEnum;
 use Filament\Facades\Filament;
 use Illuminate\Support\Str;
 use Filament\Forms;

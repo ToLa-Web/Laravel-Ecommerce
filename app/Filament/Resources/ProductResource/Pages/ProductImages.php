@@ -12,6 +12,10 @@ class ProductImages extends EditRecord
 {
     protected static string $resource = ProductResource::class;
 
+    protected static ?string $navigationIcon = 'heroicon-s-photo';
+
+    protected static ?string $title = 'Image';
+
     public function form(Form $form): Form
     {
         return $form
