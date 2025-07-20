@@ -12,6 +12,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 use function Pest\Laravel\options;
 
@@ -28,10 +30,12 @@ class ProductVariations extends EditRecord
         $types = $this->record->variationTypes;
         $fileds = [];
         foreach ($types as $type) {
-            $fileds[] = TextInput::make('variation_type_' . ($type->id) . '.id')
-                ->hidden();
-            $fileds[] = TextInput::make('variation_type_' . ($type->id) . '.name')
-                ->label($type->name);
+            $fileds[] = TextInput::make('variation_type_' . $type->id . '.id')
+                ->hidden()
+                ->default('');
+            $fileds[] = TextInput::make('variation_type_' . $type->id . '.name')
+                ->label($type->name)
+                ->default('');
         }
         return $form
             ->schema([
@@ -149,28 +153,82 @@ class ProductVariations extends EditRecord
         
     }
 
+    // protected function mutateFormDataBeforeSave(array $data): array
+    // {
+    //     $formattedData = [];
+
+    //     foreach ($data['variations'] as $option)
+    //     {
+    //         $variationTypeOptionIds = [];
+    //         foreach ($this->record->variationTypes as $variationType){
+    //             $variationTypeOptionIds[] = $option['variation_type_' . ($variationType->id)]['id'];
+    //         }
+            
+    //         $quantity = $option['quantity'];
+    //         $price = $option['price'];
+
+    //         $formattedData[] = [
+    //             'variation_type_option_ids' => $variationTypeOptionIds,
+    //             'quantity' => $quantity,
+    //             'price' => $price
+    //         ];
+    //     }
+    //     $data['variations'] = $formattedData;
+    //     return $data;
+
+    // }
+
     protected function mutateFormDataBeforeSave(array $data): array
     {
         $formattedData = [];
 
-        foreach ($data['variations'] as $option)
-        {
-            $variationTypeOptioIds = [];
-            foreach ($this->record->variationTypes as $i => $variationType){
-                $variationTypeOptioIds[] = $option['variation_type_' . ($variationType)]['id'];
+        foreach ($data['variations'] ?? [] as $index => $option) {
+            $variationTypeOptionIds = [];
+            
+            foreach ($this->record->variationTypes as $variationType) {
+                $fieldKey = 'variation_type_' . $variationType->id;
+                
+                if (isset($option[$fieldKey])) {
+                    // Check if we have the ID directly
+                    if (isset($option[$fieldKey]['id']) && !empty($option[$fieldKey]['id'])) {
+                        $variationTypeOptionIds[] = $option[$fieldKey]['id'];
+                    } 
+                    // If no ID, try to find it by name
+                    elseif (isset($option[$fieldKey]['name'])) {
+                        $optionName = $option[$fieldKey]['name'];
+                        $foundOption = $variationType->options->firstWhere('name', $optionName);
+                        if ($foundOption) {
+                            $variationTypeOptionIds[] = $foundOption->id;
+                        }
+                    }
+                }
             }
             
-            $quantity = $option['quantity'];
-            $price = $option['price'];
+            $quantity = $option['quantity'] ?? 0;
+            $price = $option['price'] ?? 0;
 
-            $formattedData[] = [
-                'variation_type_option_ids' => $variationTypeOptioIds,
-                'quantity' => $quantity,
-                'price' => $price
-            ];
+            if (!empty($variationTypeOptionIds)) {
+                $formattedData[] = [
+                    'variation_type_option_ids' => $variationTypeOptionIds,
+                    'quantity' => $quantity,
+                    'price' => $price
+                ];
+            }
         }
+        
         $data['variations'] = $formattedData;
         return $data;
+    }
 
+    protected function handleRecordUpdate(Model $record, array $data): Model
+    {
+        $variations = $data['variations'];
+        unset($data['variations']);
+
+        $record->update($data);
+        $record->variations()->delete();
+        $record->variations()->createMany($variations);
+
+        return $record;
     }
 }
