@@ -13,9 +13,8 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
-use function Pest\Laravel\options;
 
 class ProductVariations extends EditRecord
 {
@@ -39,7 +38,7 @@ class ProductVariations extends EditRecord
         }
         return $form
             ->schema([
-                  Repeater::make('variations')
+                Repeater::make('variations')
                     ->label(false)
                     ->collapsible()
                     ->addable(false)
@@ -54,14 +53,14 @@ class ProductVariations extends EditRecord
                         TextInput::make('price')
                             ->label('Price')
                             ->numeric(),
-                        
+
                     ])
                     ->columns(2)
                     ->columnSpan(2)
 
             ]);
     }
-    
+
     protected function getHeaderActions(): array
     {
         return [
@@ -87,8 +86,7 @@ class ProductVariations extends EditRecord
         $cartesianProduct = $this->cartesianProduct($variationTypes, $defaultPrice, $defaultQuantity);
         $mergeResult = [];
 
-        foreach ($cartesianProduct as $product)
-        {
+        foreach ($cartesianProduct as $product) {
             // Get option IDs for this combination
             $optionIds = collect($product)
                 ->filter(fn($value, $key) => str_starts_with($key, 'variation_type_'))
@@ -97,16 +95,17 @@ class ProductVariations extends EditRecord
                 ->toArray();
 
             // Check if combination already exists in database
-            $match = array_filter($existingData, function($existingOption) use ($optionIds){
-                return $existingOption['variation_type_option_ids'] === $optionIds; 
+            $match = array_filter($existingData, function ($existingOption) use ($optionIds) {
+                return $existingOption['variation_type_option_ids'] === $optionIds;
             });
 
             if (!empty($match)) {
                 // Use existing quantity/price
                 $existingEntry = reset($match);
+                $product['id'] = $existingEntry['id'];
                 $product['quantity'] = $existingEntry['quantity'];
                 $product['price'] = $existingEntry['price'];
-            }else{
+            } else {
                 // Use default values for new combinations
                 $product['quantity'] = $defaultQuantity;
                 $product['price'] = $defaultPrice;
@@ -117,40 +116,37 @@ class ProductVariations extends EditRecord
 
         return $mergeResult;
     }
-    
+
     // Create all possible combinations (Size S+Color Red, Size S+Color Blue, etc.)
     private function cartesianProduct($variationTypes, $defaultQuantity = null, $defaultPrice = null): array
     {
         $result = [[]];
 
-        foreach ($variationTypes as $index => $variationType){
-          $temp = [];
-          
-          foreach ($variationType->options as $option){
+        foreach ($variationTypes as $index => $variationType) {
+            $temp = [];
 
-            foreach ($result as $combination){
-                $newCombination = $combination + [
-                    'variation_type_' . ($variationType->id) => [
-                        'id' => $option->id,
-                        'name' => $option->name,
-                        'label' => $variationType->name,
-                    ]
-                ];
-                $temp[] = $newCombination;
+            foreach ($variationType->options as $option) {
+
+                foreach ($result as $combination) {
+                    $newCombination = $combination + [
+                        'variation_type_' . ($variationType->id) => [
+                            'id' => $option->id,
+                            'name' => $option->name,
+                            'label' => $variationType->name,
+                        ]
+                    ];
+                    $temp[] = $newCombination;
+                };
             };
-
-          };   
-          $result = $temp;
-
+            $result = $temp;
         };
-        foreach ($result as &$combination){
-            if (count($combination) === count($variationTypes)){
+        foreach ($result as &$combination) {
+            if (count($combination) === count($variationTypes)) {
                 $combination['quantity'] = $defaultQuantity;
                 $combination['price'] = $defaultPrice;
             }
         }
         return $result;
-        
     }
 
     // protected function mutateFormDataBeforeSave(array $data): array
@@ -163,11 +159,12 @@ class ProductVariations extends EditRecord
     //         foreach ($this->record->variationTypes as $variationType){
     //             $variationTypeOptionIds[] = $option['variation_type_' . ($variationType->id)]['id'];
     //         }
-            
+
     //         $quantity = $option['quantity'];
     //         $price = $option['price'];
 
     //         $formattedData[] = [
+    //             'id' => $option['id'],
     //             'variation_type_option_ids' => $variationTypeOptionIds,
     //             'quantity' => $quantity,
     //             'price' => $price
@@ -176,7 +173,29 @@ class ProductVariations extends EditRecord
     //     $data['variations'] = $formattedData;
     //     return $data;
 
-    // }
+    // }  
+
+
+    //     protected function handleRecordUpdate(Model $record, array $data): Model
+    //     {
+    //         $variations = $data['variations'];
+    //         unset($data['variations']);
+
+    //         $variations = collect($variations)->map(function($variations){
+    //             return [
+    //                 'id' => $variations['id'],
+    //                 'variation_type_option_ids' => json_encode($variations['variation_type_option_ids']),
+    //                 'quantity' => $variations['quantity'],
+    //                 'price' => $variations['price'],
+    //             ];
+    //         })
+    //         ->toArray();
+
+    //         $record->variations()->delete();
+    //         $record->variations()->upsert($variations, ['id'], ['variation_type_option_ids', 'quantity', 'price']);
+
+    //         return $record;
+    //     }
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
@@ -184,15 +203,15 @@ class ProductVariations extends EditRecord
 
         foreach ($data['variations'] ?? [] as $index => $option) {
             $variationTypeOptionIds = [];
-            
+
             foreach ($this->record->variationTypes as $variationType) {
                 $fieldKey = 'variation_type_' . $variationType->id;
-                
+
                 if (isset($option[$fieldKey])) {
                     // Check if we have the ID directly
                     if (isset($option[$fieldKey]['id']) && !empty($option[$fieldKey]['id'])) {
                         $variationTypeOptionIds[] = $option[$fieldKey]['id'];
-                    } 
+                    }
                     // If no ID, try to find it by name
                     elseif (isset($option[$fieldKey]['name'])) {
                         $optionName = $option[$fieldKey]['name'];
@@ -203,19 +222,20 @@ class ProductVariations extends EditRecord
                     }
                 }
             }
-            
+
             $quantity = $option['quantity'] ?? 0;
             $price = $option['price'] ?? 0;
 
             if (!empty($variationTypeOptionIds)) {
                 $formattedData[] = [
+                    // Remove ID from here - let database assign sequential IDs
                     'variation_type_option_ids' => $variationTypeOptionIds,
                     'quantity' => $quantity,
                     'price' => $price
                 ];
             }
         }
-        
+
         $data['variations'] = $formattedData;
         return $data;
     }
@@ -225,8 +245,23 @@ class ProductVariations extends EditRecord
         $variations = $data['variations'];
         unset($data['variations']);
 
-        $record->update($data);
+        // Delete all existing variations
         $record->variations()->delete();
+
+        // Reset the auto-increment counter for SQLite
+        DB::statement('DELETE FROM sqlite_sequence WHERE name = "product_variations"');
+
+        // Prepare variations (no ID needed - database will assign 1,2,3...)
+        $variations = collect($variations)->map(function ($variation) {
+            return [
+                //'variation_type_option_ids' => json_encode($variation['variation_type_option_ids']),
+                'variation_type_option_ids' => $variation['variation_type_option_ids'],
+                'quantity' => $variation['quantity'],
+                'price' => $variation['price'],
+            ];
+        })->toArray();
+
+        // Create new variations with sequential IDs
         $record->variations()->createMany($variations);
 
         return $record;

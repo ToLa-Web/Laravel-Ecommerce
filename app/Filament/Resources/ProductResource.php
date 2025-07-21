@@ -39,6 +39,12 @@ class ProductResource extends Resource
     protected static ?string $navigationIcon = 'bi-list';
 
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::End;
+    
+    // Restrict product queries to the current vendor
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->forVendor();
+    }
 
     public static function form(Form $form): Form
     {
