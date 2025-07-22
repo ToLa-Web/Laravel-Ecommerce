@@ -11,7 +11,6 @@ export type Image = {
     id: number;
     thumb: string;
     small: string;
-    medium: string;
     large: string;
 }
 
@@ -25,8 +24,8 @@ export type VariationTypeOption = {
 export type variationType = {
     id: number;
     name: string;
-    type: 'select' | 'radio' | 'image';
-    option: VariationTypeOption[] 
+    type: 'select' | 'Radio' | 'Image';
+    options: VariationTypeOption[] 
 }
 
 export type Product = {

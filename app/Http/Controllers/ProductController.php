@@ -25,7 +25,7 @@ class ProductController extends Controller
     {
         return Inertia::render('Product/Show', [
             'product' => new ProductResource($product),
-            'variationOption' => request('options', [])
+            'variationOptions' => request('options', [])
         ]);
     }
 }

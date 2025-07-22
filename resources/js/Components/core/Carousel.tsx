@@ -12,6 +12,11 @@ const Carousel = ({images} : {
                 </a>
             ))}
         </div>
+        {images.map((image, i ) => (
+          <div id={'item' + i} key={image.id} className="carousel-item w-full">
+            <img src={image.large} className="w-full" />
+          </div>
+        ))}
       </div>
     </>
   )
